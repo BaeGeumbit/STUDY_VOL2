@@ -9,8 +9,6 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface EmplistMapper {
 
-	public List<HashMap<String, String>> getEmpList(Map pageParam);
-	
 	public int getListCount();
 
 	public List<HashMap<String, String>> getEmpSearchList(Map<String, Object> param);

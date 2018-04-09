@@ -7,57 +7,98 @@
 	<%@include file="header.jsp" %>
 	
 	<script type="text/javascript">
+		var first = 0;
 		$(document).ready(function(){
-			
-			$('#selectSearch li > a').on('click', function() {			    
-			    $('#selectStatus').html(""+$(this).text()+"&nbsp;<span class='caret'></span>");			        
-			   
-			    var dropname = '';
-			    
-			    if($(this).text() == '이름'){
-			    	dropname='EMP_NAME';
-			    }else if($(this).text() == '부서'){
-			    	dropname='DPT_NAME';
-			    }else if($(this).text() == '상태'){
-			    	dropname='EMP_STTS';
-			    }
-			    
-			    $('#empSearchDrop').val(dropname);			    
-			});	
+			if(first == 0){
+				searchEmp();
+				++first;
+			}
 			
 			$('#empSearchBt').click(function(){				
-				if($('#empSearchText').val() == "" || $('#empSearchText').val() == null){					
-					alert('검색 내용을 입력해주세요');
-					$('#selectStatus').html(""+$('#empSearchDrop').val()+"&nbsp;<span class='caret'></span>");			
-				}else{					
-					emplistfrm.action ="/emplist/search";
-					emplistfrm.submit();				
+				if($('#empSearchText').val() == ""){					
+					alert('검색 내용을 입력해주세요');		
+				}else{				
+					searchEmp();
 				}
 			});
 			
-			$("[id='check-2']").click(function(){
-				//alert($('#empSearchDrop').val());
-				//emplistfrm.action ="/emplist/search";
-				//alert($(this).attr('name'));		
-				  var drop= '';
-				 //alert($('#selectStatus').text());   
-			    if($('#selectStatus').text().trim() == '이름'){
-			    	drop='EMP_NAME';
-			    }else if($('#selectStatus').text().trim() == '부서'){
-			    	drop='DPT_NAME';
-			    }else if($('#selectStatus').text().trim() == '상태'){
-			    	drop='EMP_STTS';
-			    }
-			    //alert(drop);
-			    $('#empSearchDrop').val(drop);	
-			    
-				$('#page').val($(this).attr('name'));
-				emplistfrm.action = "/emplist/search";
-				emplistfrm.submit();
-				
-			});
 			
 		}); // document.ready	
+		
+		
+		function searchEmp(){
+			//alert($('#empSearchDrop').val()+"/"+$('#empSearchText').val(),$('#page').val());
+			$.ajax({
+				method : "POST",
+				url : "/emplist/search",
+				data : {
+					"searchDrop" : $('#empSearchDrop').val(),
+					"searchText" : $('#empSearchText').val(),
+					"page" : $('#page').val()						
+				},
+				dataType : "json",
+				success : function(data){
+					console.log(data);
+					var fulldata = eval(data);
+					$('#searchDrop').val(fulldata.searchDrop).prop('selected', true);
+					$('#searchText').val(fulldata.searchText);
+					
+					$('#list_tbody').empty();
+					$('#pageul').empty();
+					
+					var listdata = eval(data.emplist);					
+					var liststr = "";
+					
+					$(listdata).each(function(i,t){					
+						liststr += "<tr ondblclick='empinfo("+t.EMP_NO+")'>"
+								+  "<td>"+t.EMP_NO+"</td>"
+								+  "<td>"+t.EMP_NAME+"</td>"
+								+  "<td>"+t.EMP_STTS_NAME+"</td>"
+								+  "<td>"+t.DPT_NAME+"</td>"
+								+  "<td>"+t.RNK_NAME+"</td>"
+								+  "<td>"+t.CNTCT_NO+"</td>"
+								+  "<td>"+t.COMP_EMAIL+"</td>"
+								+  "</tr>";
+					});
+					
+					if(liststr == ""){
+						liststr += "<tr>"
+						+  "<td colspan='6'> 검색 결과가 없습니다 </td>"
+						+  "</tr>";
+					}
+					
+					$(liststr).appendTo('#list_tbody');
+					
+					var pagestr = "";
+					var prePage = fulldata.endPage - fulldata.startPage;
+					if(fulldata.pre == true){
+						pagestr += '<li><a id="check-2" name="'+(fulldata.endPage - fulldata.startPage)+'" href="#">◀</a></li>'						
+					}	
+					for(var i=fulldata.startPage; i<fulldata.endPage+1; i++){
+						pagestr += '<li><a id="check-2" name="'+i+'" href="#">'+i+'</a></li>'
+					}
+					if(fulldata.next == true){
+						pagestr += '<li><a id="check-2" name="'+((fulldata.endPage*1)+1)+'" href="#">▶</a></li>'						
+					}	
+					
+					$(pagestr).appendTo('#pageul'); 
+					
+					$("[id='check-2']").bind('click', function(){	
+						$('#page').val($(this).attr('name'));		
+						searchEmp();
+					});
+				},
+				error : function(request,status,error){
+					alert( "code:"+request.status+"\n"
+							  +"message:"+request.responseText
+							  +"\n"+"error:"+error);	
+					}	
+			});
+		}
+		
+		function empinfo(obj){
+			location.href = "/empinfo?emp_no="+obj;
+		}
 		
 	</script>
 		
@@ -73,22 +114,16 @@
 				  <form name="emplistfrm" method="post">
 				    <input type="hidden" id="check" name="check" value="">
 				    <input type="hidden" id="page" name="page" value="1">
-					<input type="hidden" id="empSearchDrop" name="empSearchDrop" value="">
 					  <div class="col-xs-10 form-group list-text">
-					  	 <div class="dropdown">
-							  <button class="btn btn-primary dropdown-toggle"  id="selectStatus" type="button" 
-							  				data-toggle="dropdown">${searchDrop}
-							  <span class="caret"></span></button>
-							  <ul class="dropdown-menu" id="selectSearch">
-							  	<li><a>전체</a></li>
-							    <li><a>이름</a></li>
-							    <li><a>부서</a></li>
-							    <li><a>상태</a></li>
-							  </ul>
-						 </div>			  	
+					  	 <select class="form-control" name="empSearchDrop" id="empSearchDrop"> 
+			    			<option value="" >선택</option>
+							<option value="emp_name">사원명</option>
+							<option value="dpt_name">부서명</option>
+							<option value="emp_stts_code">사원 상태</option>
+						</select>			  	
 						 <input type="text" class="form-control" id="empSearchText" name="empSearchText" 
-						 			value="${searchText}"	placeholder="검색할 내용을 입력해주세요">
-						 <button type="submit" class="btn btn-default" id="empSearchBt"> 
+						 			value=""	placeholder="검색할 내용을 입력해주세요">
+						 <button type="button" class="btn btn-default" id="empSearchBt"> 
 						 	<i class="glyphicon glyphicon-search"></i>
 						 </button>
 					  </div> <!-- .col-xs-10 form-group list-text -->
@@ -98,7 +133,7 @@
 				 
 				  <br><br><br><br>
 				  <table class="table table-striped list-table">
-				     <c:if test="${check == 1 || check == 2}">
+
 					    <thead>
 					      <tr>
 					        <th>사원번호</th>
@@ -111,69 +146,18 @@
 					      </tr>
 					    </thead>
 				    
-					    <tbody>				   
-					    	<c:forEach var="emp" items="${emplist}">
-					      	<tr ondblclick="location.href='/empinfo?emp_no=${emp.EMP_NO}'">
-					      		<td>${emp.EMP_NO}</td>
-					      		<td>${emp.EMP_NAME}</td>
-					      		<td>${emp.EMP_STTS_NAME}</td>
-					      		<td>${emp.DPT_NAME}</td>
-					      		<td>${emp.RNK_NAME}</td>
-					      		<td>${emp.CNTCT_NO}</td>
-					      		<td>${emp.COMP_EMAIL}</td>
-					      	</tr>				    	
-					      </c:forEach>					      
-					    </c:if>	
-					    			   
-					    <c:if test="${check == 3}">
-					    	<tr>
-					      		<td colspan="6" style="text-align:center;">검색결과가 없습니다</td>
-					      	</tr>
-					    </c:if> 			
-					    <c:if test="${check == 4}">
-					    	<tr>
-					      		<td colspan="6" style="text-align:center;">사원이 존재하지 않습니다</td>
-					      	</tr>
-					    </c:if>     					  	       				      
+					    <tbody id="list_tbody">	
+					    					      	      					  	       				      
 					   </tbody> 
+					   
 				  </table>
-				
-				<c:if test="${check == 1}">
-					<div class="col-xs-12">
-						<ul class="pager pagenum">
-							<c:if test="${pre == true}"> 
-								 <li><a href="/emplist?page=${startPage-pageSize}">◀</a></li>
-							</c:if>						
-							<c:set var="p" value="${startPage}"/>
-							<c:forEach begin="${startPage}" end="${endPage}">
-								<li><a href="/emplist?page=${p}">${p}</a></li>
-								<c:set var="p" value="${p+1}"/>
-							</c:forEach>						
-							<c:if test="${next == true}"> 
-								 <li><a href="/emplist?page=${endPage+1}">▶</a></li>
-							</c:if>		  
+				  
+				  <div class="col-xs-12">
+						<ul class="pager pagenum" id="pageul">
+							  
 					  	</ul>
 					</div> <!-- .col-xs-12 -->
-				</c:if>
-				
-				<c:if test="${check == 2}">
-					<div class="col-xs-12">
-						<ul class="pager pagenum">
-							<c:if test="${pre == true}"> 
-								 <li><a id="check-2" name="${startPage-pageSize}" href="#">◀</a></li>
-							</c:if>						
-							<c:set var="p" value="${startPage}"/>
-							<c:forEach begin="${startPage}" end="${endPage}">
-								<li><a id="check-2" name="${p}" href="#">${p}</a></li>
-								<c:set var="p" value="${p+1}"/>
-							</c:forEach>						
-							<c:if test="${next == true}"> 
-								 <li><a id="check-2" name="${endPage+1}" href="#">▶</a></li>
-							</c:if>		  
-					  	</ul>
-					</div> <!-- .col-xs-12 -->
-				</c:if>
-				
+
 			</div>  <!-- .container -->
 		</div><!-- .col-xs-10 right-->	
 	</div><!-- .index -->

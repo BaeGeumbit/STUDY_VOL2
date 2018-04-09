@@ -19,17 +19,20 @@
 		     , NVL(TO_CHAR(TO_DATE(JOIN_DATE,'YYYY-MM-DD'),'YYYY-MM-DD'),'9999-12-31') AS JOIN_DATE     
 		     , NVL(TO_CHAR(TO_DATE(RSGN_DATE,'YYYY-MM-DD'),'YYYY-MM-DD'),'9999-12-31') AS RSGN_DATE     
 		     , RNK_CODE        								
-             , ( SELECT MIN(I.DPT_ROLE_CLS_CODE)
+             , ( SELECT WM_CONCAT(I.DPT_ROLE_CLS_CODE)
                    FROM STE101I I
                   WHERE 1 = 1
-                    AND I.EMP_NO = E.EMP_NO       
+                    AND I.EMP_NO = E.EMP_NO    
+                    AND I.APLY_STRT_DATE <![CDATA[<=]]> TO_CHAR(SYSDATE, 'YYYYMMDD')
+                    AND I.APLY_END_DATE >  TO_CHAR(SYSDATE, 'YYYYMMDD')   
              	)  AS DPT_ROLE_CLS_CODE  																
              ,  ( SELECT WM_CONCAT(P.DPT_NAME)
                    FROM STE101I D, STC003I P
                   WHERE 1 = 1
                     AND E.EMP_NO = D.EMP_NO
                     AND D.DPT_CODE = P.DPT_CODE
-                    AND D.APLY_STRT_DATE = P.APLY_STRT_DATE)  AS DPT_NAME       					       	    
+                    AND D.APLY_STRT_DATE <![CDATA[<=]]> TO_CHAR(SYSDATE, 'YYYYMMDD')
+                    AND D.APLY_END_DATE >  TO_CHAR(SYSDATE, 'YYYYMMDD') )  AS DPT_NAME       					       	    
 		     , COMP_EMAIL               								    		
 		     , CNTCT_NO                 								 					     
 		     , EMP_ENG_NAME              							     		
@@ -110,6 +113,7 @@
 	         , HRNK_DPT_CODE                  /* 상위_부서_코드 */
 	         , SORT_SEQ_NO                    /* 정렬_순번 */
 	         , LAST_LEVL_YN                   /* 최하위_레벨_여부 */
+	         , APLY_STRT_DATE
 	      FROM STUDY.STC003I
 	     WHERE APLY_STRT_DATE <= TO_CHAR(SYSDATE, 'YYYYMMDD')
 	       AND APLY_END_DATE  >  TO_CHAR(SYSDATE, 'YYYYMMDD')
@@ -144,6 +148,7 @@
 		      , LEVEL AS LEVL_NO               /* 레벨_번호 */
 		      , SORT_SEQ_NO                    /* 정렬_순번 */
 		      , LAST_LEVL_YN                   /* 최하위_레벨_여부 */
+		      , APLY_STRT_DATE
 		   FROM T_HRCH
 		CONNECT BY PRIOR DPT_CODE = HRNK_DPT_CODE
 		  START WITH HRNK_DPT_CODE IS NULL
@@ -205,6 +210,3 @@
 	</insert>
   
 </mapper>
-
-
-

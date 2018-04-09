@@ -1,6 +1,5 @@
 package com.iteyes.works.empinfo.mapper;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -8,6 +7,11 @@ import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
 public interface UpdateEmpinfoMapper {
+	
+	//비번
+	public int selectPasswd(Map<String, String> passwdParam);
+	
+	public int updatePasswd(Map<String, String> passwdParam);
 	
 	//기본
 	public int updateBasic(Map<String, String> updateMap);
